@@ -66,7 +66,7 @@ Once connected via SSH:
 
 ```bash
 cd ~
-wget https://raw.githubusercontent.com/YOUR_REPO/echo-archery/main/install.sh
+wget https://raw.githubusercontent.com/YOUR_REPO/inoxia-echo/main/install.sh
 chmod +x install.sh
 ```
 
@@ -213,7 +213,7 @@ sudo systemctl enable dnsmasq
 
 ```bash
 cd /home/pi
-git clone https://github.com/YOUR_REPO/echo-archery.git
+git clone https://github.com/YOUR_REPO/inoxia-echo.git
 cd echo-archery
 ```
 
