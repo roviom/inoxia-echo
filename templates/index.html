@@ -1,1 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Echo - Archery Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #1f2937;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .status-bar {
+            padding: 15px 20px;
+            background: #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .status-text {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-dot.error {
+            background: #ef4444;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .target-selector {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .target-selector select {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
+            background: white;
+            font-weight: 600;
+        }
+        
+        button {
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-success.active {
+            background: #f59e0b;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .preview-panel, .target-panel {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .panel-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+        
+        .preview-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .preview-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .target-display {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        #targetCanvas {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: #3b82f6;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .arrow-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .arrow-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95em;
+        }
+        
+        .arrow-item:last-child {
+            border-bottom: none;
+        }
+        
+        .arrow-id {
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        
+        .arrow-score {
+            font-weight: 700;
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Echo</h1>
+            <div class="subtitle">Archery Detection System</div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-text" id="statusText">Initializing...</div>
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusLabel">Ready</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-row">
+                <div class="target-selector">
+                    <select id="targetSize">
+                        <option value="122cm">122cm Target (WA Standard)</option>
+                        <option value="80cm">80cm Target (WA Reduced)</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="calibrate()">📸 Calibrate</button>
+            </div>
+            
+            <div class="control-row">
+                <button class="btn-success" id="autoDetectBtn" onclick="toggleAutoDetect()">⚡ Start Auto-Detect</button>
+                <button class="btn-primary" onclick="manualDetect()">🎯 Detect Now</button>
+                <button class="btn-warning" onclick="resetArrows()">🔄 Reset</button>
+            </div>
+            
+            <div class="control-row">
+                <button class="btn-danger" onclick="shutdownSystem()">⚠️ Shutdown System</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="preview-panel">
+                <div class="panel-title">Live Camera View</div>
+                <div class="preview-container">
+                    <img id="preview" src="/api/preview" alt="Camera Preview">
+                </div>
+            </div>
+            
+            <div class="target-panel">
+                <div class="panel-title">Target Display</div>
+                <div class="target-display">
+                    <canvas id="targetCanvas" width="500" height="500"></canvas>
+                </div>
+                <div class="arrow-list" id="arrowList"></div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Arrows</div>
+                <div class="stat-value" id="totalArrows">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Score</div>
+                <div class="stat-value" id="totalScore">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Score</div>
+                <div class="stat-value" id="avgScore">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Best Shot</div>
+                <div class="stat-value" id="bestShot">-</div>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        let arrows = [];
+        let autoDetectActive = false;
+        let currentTargetSize = '122cm';
+        
+        // Target ring colors
+        const TARGET_RINGS = {
+            '122cm': [
+                { score: 10, radius: 0.05, color: '#FFD700' },
+                { score: 10, radius: 0.10, color: '#FFD700' },
+                { score: 9, radius: 0.20, color: '#FFD700' },
+                { score: 8, radius: 0.30, color: '#FF0000' },
+                { score: 7, radius: 0.40, color: '#FF0000' },
+                { score: 6, radius: 0.50, color: '#4169E1' },
+                { score: 5, radius: 0.60, color: '#4169E1' },
+                { score: 4, radius: 0.70, color: '#000000' },
+                { score: 3, radius: 0.80, color: '#000000' },
+                { score: 2, radius: 0.90, color: '#FFFFFF' },
+                { score: 1, radius: 1.00, color: '#FFFFFF' }
+            ],
+            '80cm': [
+                { score: 10, radius: 0.05, color: '#FFD700' },
+                { score: 10, radius: 0.10, color: '#FFD700' },
+                { score: 9, radius: 0.20, color: '#FFD700' },
+                { score: 8, radius: 0.30, color: '#FF0000' },
+                { score: 7, radius: 0.40, color: '#FF0000' },
+                { score: 6, radius: 0.50, color: '#4169E1' },
+                { score: 5, radius: 0.60, color: '#4169E1' }
+            ]
+        };
+        
+        // Initialize
+        window.onload = function() {
+            drawTarget();
+            updateStatus();
+            updateArrows();
+            
+            // Auto-refresh preview
+            setInterval(() => {
+                document.getElementById('preview').src = '/api/preview?' + Date.now();
+            }, 1000);
+            
+            // Auto-update arrows when auto-detect is active
+            setInterval(() => {
+                if (autoDetectActive) {
+                    updateArrows();
+                }
+            }, 1000);
+            
+            // Status update
+            setInterval(updateStatus, 2000);
+        };
+        
+        // Draw target face
+        function drawTarget() {
+            const canvas = document.getElementById('targetCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = canvas.width * 0.45;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw rings
+            const rings = TARGET_RINGS[currentTargetSize];
+            for (let i = rings.length - 1; i >= 0; i--) {
+                const ring = rings[i];
+                ctx.fillStyle = ring.color;
+                ctx.strokeStyle = i % 2 === 0 ? '#000' : '#fff';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, maxRadius * ring.radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            // Draw center point
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw arrows
+            arrows.forEach((arrow, index) => {
+                const x = centerX + (arrow.x_cm / 61) * maxRadius;
+                const y = centerY + (arrow.y_cm / 61) * maxRadius;
+                
+                // Arrow point
+                ctx.fillStyle = '#FF0000';
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Arrow number
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(arrow.id, x, y);
+            });
+        }
+        
+        // Update status
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const calibrated = data.detector?.calibrated || false;
+                const statusText = calibrated ? 'System Ready' : 'Not Calibrated';
+                const statusClass = calibrated ? '' : 'error';
+                
+                document.getElementById('statusText').textContent = statusText;
+                document.getElementById('statusDot').className = 'status-dot ' + statusClass;
+                document.getElementById('statusLabel').textContent = calibrated ? 'Calibrated' : 'Not Ready';
+                
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+        
+        // Calibrate system
+        async function calibrate() {
+            const targetSize = document.getElementById('targetSize').value;
+            currentTargetSize = targetSize;
+            
+            document.getElementById('statusText').textContent = 'Calibrating...';
+            
+            try {
+                const response = await fetch('/api/calibrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_size: targetSize })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('statusText').textContent = 'Calibration successful!';
+                    drawTarget();
+                } else {
+                    alert('Calibration failed: ' + data.message);
+                    document.getElementById('statusText').textContent = 'Calibration failed';
+                }
+                
+            } catch (error) {
+                alert('Calibration error: ' + error.message);
+            }
+        }
+        
+        // Toggle auto-detection
+        async function toggleAutoDetect() {
+            const btn = document.getElementById('autoDetectBtn');
+            
+            try {
+                const response = await fetch('/api/auto-detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enable: !autoDetectActive })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    autoDetectActive = data.active;
+                    
+                    if (autoDetectActive) {
+                        btn.textContent = '⏸️ Stop Auto-Detect';
+                        btn.className = 'btn-success active';
+                    } else {
+                        btn.textContent = '⚡ Start Auto-Detect';
+                        btn.className = 'btn-success';
+                    }
+                }
+                
+            } catch (error) {
+                alert('Auto-detect error: ' + error.message);
+            }
+        }
+        
+        // Manual detection
+        async function manualDetect() {
+            document.getElementById('statusText').textContent = 'Detecting...';
+            
+            try {
+                const response = await fetch('/api/detect', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.new_arrows && data.new_arrows.length > 0) {
+                        document.getElementById('statusText').textContent = 
+                            `Detected ${data.new_arrows.length} new arrow(s)!`;
+                    } else {
+                        document.getElementById('statusText').textContent = 'No new arrows detected';
+                    }
+                    updateArrows();
+                } else {
+                    alert('Detection failed: ' + data.message);
+                }
+                
+            } catch (error) {
+                alert('Detection error: ' + error.message);
+            }
+        }
+        
+        // Update arrows from server
+        async function updateArrows() {
+            try {
+                const response = await fetch('/api/arrows');
+                const data = await response.json();
+                
+                if (data.success) {
+                    arrows = data.arrows;
+                    const stats = data.statistics;
+                    
+                    // Update display
+                    drawTarget();
+                    updateStats(stats);
+                    updateArrowList();
+                }
+                
+            } catch (error) {
+                console.error('Arrow update failed:', error);
+            }
+        }
+        
+        // Update statistics
+        function updateStats(stats) {
+            document.getElementById('totalArrows').textContent = stats.total_arrows || 0;
+            document.getElementById('totalScore').textContent = stats.total_score || 0;
+            document.getElementById('avgScore').textContent = 
+                stats.average_score ? stats.average_score.toFixed(1) : '-';
+            
+            if (stats.best_arrow) {
+                const best = stats.best_arrow;
+                document.getElementById('bestShot').textContent = 
+                    `${best.score} (${best.distance_cm}cm)`;
+            } else {
+                document.getElementById('bestShot').textContent = '-';
+            }
+        }
+        
+        // Update arrow list
+        function updateArrowList() {
+            const list = document.getElementById('arrowList');
+            
+            if (arrows.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af;">No arrows detected yet</div>';
+                return;
+            }
+            
+            list.innerHTML = arrows.map(arrow => `
+                <div class="arrow-item">
+                    <span class="arrow-id">Arrow #${arrow.id}</span>
+                    <span>${arrow.distance_cm}cm from center</span>
+                    <span class="arrow-score">Score: ${arrow.score}</span>
+                </div>
+            `).join('');
+        }
+        
+        // Reset all arrows
+        async function resetArrows() {
+            if (!confirm('Reset all arrows?')) return;
+            
+            try {
+                const response = await fetch('/api/reset', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    arrows = [];
+                    drawTarget();
+                    updateStats({ total_arrows: 0, total_score: 0 });
+                    updateArrowList();
+                    document.getElementById('statusText').textContent = 'Arrows reset';
+                }
+                
+            } catch (error) {
+                alert('Reset error: ' + error.message);
+            }
+        }
+        
+        // Shutdown system
+        async function shutdownSystem() {
+            if (!confirm('Shutdown the Echo system? This will safely power down the Raspberry Pi.')) {
+                return;
+            }
+            
+            document.getElementById('statusText').textContent = 'Shutting down...';
+            
+            try {
+                await fetch('/api/shutdown', { method: 'POST' });
+                
+                // Show shutdown message
+                document.body.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; 
+                                height: 100vh; flex-direction: column; text-align: center;
+                                background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+                                color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                        <h1 style="font-size: 3em; margin-bottom: 20px;">⚡ Echo System Shutting Down</h1>
+                        <p style="font-size: 1.5em; opacity: 0.9;">Wait 30 seconds, then safely disconnect power.</p>
+                        <p style="font-size: 1.2em; margin-top: 20px; opacity: 0.8;">The green LED will stop flashing when shutdown is complete.</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                // Shutdown started, connection lost - this is expected
+                console.log('Shutdown initiated');
+            }
+        }
+    </script>
+</body>
+</html>
